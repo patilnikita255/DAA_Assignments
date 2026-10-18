@@ -1,81 +1,159 @@
-
 #include <iostream>
+#include <vector>
 #include <algorithm>
 using namespace std;
 
+struct Item {
+    string name;
+    int weight;
+    int profit;
+};
+
+struct State {
+    int weight;
+    int profit;
+    vector<int> selected;
+};
+
+vector<State> purge(vector<State> states) {
+
+    sort(states.begin(), states.end(),
+         [](const State& a, const State& b) {
+
+             if (a.weight == b.weight)
+                 return a.profit > b.profit;
+
+             return a.weight < b.weight;
+         });
+
+    vector<State> result;
+
+    int maxProfit = -1;
+
+    for (const State& state : states) {
+
+        if (state.profit > maxProfit) {
+
+            result.push_back(state);
+            maxProfit = state.profit;
+        }
+    }
+
+    return result;
+}
+
 int main() {
-    int n, W;
+
+    int N, capacity;
 
     cout << "Enter number of items: ";
-    cin >> n;
+    cin >> N;
 
-    if (n < 1 || n > 100) {
-        cout << "Invalid number of items. Enter 1 to 100.\n";
-        return 1;
+    cout << "Enter capacity: ";
+    cin >> capacity;
+
+    vector<Item> items(N);
+
+    cout << "\nEnter item details:\n";
+
+    for (int i = 0; i < N; i++) {
+
+        cout << "\nItem " << i + 1 << endl;
+
+        cout << "Name: ";
+        cin >> items[i].name;
+
+        cout << "Weight: ";
+        cin >> items[i].weight;
+
+        cout << "Profit: ";
+        cin >> items[i].profit;
     }
 
-    int weight[100], value[100];
+    vector<State> states;
 
-    cout << "Enter weight and utility value of each item:\n";
+    State initial;
+    initial.weight = 0;
+    initial.profit = 0;
 
-    for (int i = 0; i < n; i++) {
-        cin >> weight[i] >> value[i];
+    states.push_back(initial);
 
-        if (weight[i] <= 0 || value[i] < 0) {
-            cout << "Invalid weight or utility value.\n";
-            return 1;
+    for (int i = 0; i < N; i++) {
+
+        vector<State> merged;
+
+        for (const State& state : states) {
+            merged.push_back(state);
         }
-    }
 
-    cout << "Enter truck capacity: ";
-    cin >> W;
+        for (const State& state : states) {
 
-    if (W < 0 || W > 1000) {
-        cout << "Capacity must be between 0 and 1000.\n";
-        return 1;
-    }
+            int newWeight =
+                state.weight + items[i].weight;
 
-    int dp[101][1001] = {0};
+            if (newWeight <= capacity) {
 
-    // Build the DP table
-    for (int i = 1; i <= n; i++) {
-        for (int w = 0; w <= W; w++) {
-            if (weight[i - 1] <= w) {
-                dp[i][w] = max(
-                    value[i - 1] +
-                    dp[i - 1][w - weight[i - 1]],
-                    dp[i - 1][w]
-                );
-            } else {
-                dp[i][w] = dp[i - 1][w];
+                State newState;
+
+                newState.weight = newWeight;
+
+                newState.profit =
+                    state.profit + items[i].profit;
+
+                newState.selected =
+                    state.selected;
+
+                newState.selected.push_back(i);
+
+                merged.push_back(newState);
             }
         }
+
+        states = purge(merged);
+
+        cout << "\nAfter processing "
+             << items[i].name << ":\n";
+
+        for (const State& state : states) {
+
+            cout << "("
+                 << state.weight
+                 << ", "
+                 << state.profit
+                 << ") ";
+        }
+
+        cout << endl;
     }
 
-    cout << "\nMaximum utility value: " << dp[n][W] << endl;
+    State best = states[0];
 
-    // Find selected items
-    int selected[100];
-    int count = 0;
-    int w = W;
+    for (const State& state : states) {
 
-    for (int i = n; i > 0; i--) {
-        if (dp[i][w] != dp[i - 1][w]) {
-            selected[count++] = i;
-            w -= weight[i - 1];
+        if (state.profit > best.profit) {
+            best = state;
         }
     }
 
-    cout << "Selected items: ";
+    cout << "OPTIMAL SOLUTION\n";
+  
+    cout << "Maximum Profit = "
+         << best.profit << endl;
 
-    if (count == 0) {
-        cout << "None";
-    } else {
-        for (int i = count - 1; i >= 0; i--) {
-            cout << selected[i] << " ";
-        }
+    cout << "Total Weight   = "
+         << best.weight << endl;
+
+    cout << "\nSelected Items:\n";
+
+    for (int index : best.selected) {
+
+        cout << items[index].name
+             << " -> Weight = "
+             << items[index].weight
+             << ", Profit = "
+             << items[index].profit
+             << endl;
     }
 
-    cout << endl;
     return 0;
 }
